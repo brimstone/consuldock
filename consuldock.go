@@ -41,12 +41,15 @@ func addContainer(id string) error {
 	if details.Name[1:] == "consul" {
 		return errors.New("Not adding consul container")
 	}
-	//log.Printf("%#v\n", details.Name)
+
 	// create a new registration object
 	registration := new(consulapi.CatalogRegistration)
-	// initalize it to our container
+	// initalize it with our container details
 	registration.Node = details.Name[1:]
 	registration.Address = details.NetworkSettings.IpAddress
+
+	// [todo] - Add Services to node at registration time
+
 	// Attempt to register it with consul
 	log.Println("Adding container", details.Name[1:])
 	_, err := catalog.Register(registration, nil)
