@@ -77,10 +77,13 @@ func removeContainer(id string) error {
 }
 
 func main() {
+	// Function level variables
+	var err error
+
 	// parse our cli flags
 	flag.Parse()
+
 	// Init the docker client
-	var err error
 	docker, err = dockerclient.NewDockerClient(*dockerSock)
 	if err != nil {
 		log.Fatal(err)
