@@ -149,6 +149,8 @@ func main() {
 
 	// Listen to events
 	docker.StartMonitorEvents(eventCallback)
-	// [todo] - figure out how to make this wait forever
-	time.Sleep(3600 * time.Second)
+	// [fixme] - figure out a better way to wait forever
+	for {
+		time.Sleep(24 * time.Hour)
+	}
 }
