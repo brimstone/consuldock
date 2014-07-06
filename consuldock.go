@@ -11,6 +11,8 @@ import (
 
 var consulAddress = flag.String("consul", "0.0.0.0:8500", "Address of consul server")
 
+// TODO dockerSock
+
 var docker *dockerclient.DockerClient
 var catalog *consulapi.Catalog
 
@@ -126,8 +128,6 @@ func main() {
 	}
 	log.Println("Consul Leader is", leader)
 
-	// TODO and we're not running consul on 0.0.0.0
-	// Look for a 'consul' named container and use its deets
 	catalog = consul.Catalog()
 
 	for _, c := range containers {
@@ -144,5 +144,6 @@ func main() {
 
 	// Listen to events
 	docker.StartMonitorEvents(eventCallback)
+	// TODO figure out how to make this wait forever
 	time.Sleep(3600 * time.Second)
 }
