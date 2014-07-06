@@ -20,12 +20,12 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 	switch event.Status {
 	case "create":
 	case "start":
-		err := addcontainer(event.Id)
+		err := addContainer(event.Id)
 		if err != nil {
 			log.Println("err:", err)
 		}
 	case "die":
-		err := removecontainer(event.Id)
+		err := removeContainer(event.Id)
 		if err != nil {
 			log.Println("err:", err)
 		}
@@ -35,7 +35,7 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 	}
 }
 
-func addcontainer(id string) error {
+func addContainer(id string) error {
 	// get our container details
 	details, _ := docker.InspectContainer(id)
 	if details.Name[1:] == "consul" {
@@ -58,7 +58,7 @@ func addcontainer(id string) error {
 	return nil
 }
 
-func removecontainer(id string) error {
+func removeContainer(id string) error {
 	// get our container details
 	details, _ := docker.InspectContainer(id)
 	// create a new registration object
@@ -138,7 +138,7 @@ func main() {
 		// remove ugly leading slash
 		// let the user know what's up
 		log.Println("Found already running container:", container)
-		err := addcontainer(c.Id)
+		err := addContainer(c.Id)
 		if err != nil {
 			log.Println("err:", err)
 		}
