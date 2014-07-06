@@ -10,8 +10,7 @@ import (
 )
 
 var consulAddress = flag.String("consul", "0.0.0.0:8500", "Address of consul server")
-
-// TODO dockerSock
+var dockerSock = flag.String("docker", "unix:///var/run/docker.sock", "Path to docker socket")
 
 var docker *dockerclient.DockerClient
 var catalog *consulapi.Catalog
@@ -81,8 +80,8 @@ func main() {
 	// parse our cli flags
 	flag.Parse()
 	// Init the docker client
-	// TODO error checking
-	docker, _ = dockerclient.NewDockerClient("unix:///var/run/docker.sock")
+	// [todo] - error checking
+	docker, _ = dockerclient.NewDockerClient(*dockerSock)
 
 	// Get only running containers
 	containers, err := docker.ListContainers(false)
@@ -144,6 +143,6 @@ func main() {
 
 	// Listen to events
 	docker.StartMonitorEvents(eventCallback)
-	// TODO figure out how to make this wait forever
+	// [todo] - figure out how to make this wait forever
 	time.Sleep(3600 * time.Second)
 }
