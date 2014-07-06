@@ -80,8 +80,11 @@ func main() {
 	// parse our cli flags
 	flag.Parse()
 	// Init the docker client
-	// [todo] - error checking
-	docker, _ = dockerclient.NewDockerClient(*dockerSock)
+	var err error
+	docker, err = dockerclient.NewDockerClient(*dockerSock)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Get only running containers
 	containers, err := docker.ListContainers(false)
