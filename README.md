@@ -12,10 +12,11 @@ Uses the following libraries:
 * [consul](http://consul.io) v0.3.0
 
 ## Installation
-Simply `go get https://github.com/brimstone/consuldock` or `docker run ...`
+Simply `go get https://github.com/brimstone/consuldock` or `docker run -d -v /var/run/docker.sock:/var/run/docker.sock brimstone/consuldock`
 
 ## Usage
 Everything should happen automatically. Worst case, some cli flags can be passed:
 
 * --consul: Address of consul server, if not on localhost or provided by a container named 'consul'
 * --dockersock: Path to docker sock if not `/var/run/docker.sock`
+
