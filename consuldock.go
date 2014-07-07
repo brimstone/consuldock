@@ -6,6 +6,8 @@ import (
 	"github.com/armon/consul-api"
 	"github.com/samalba/dockerclient"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -42,22 +44,49 @@ func addContainer(id string) error {
 		return errors.New("Not adding consul container")
 	}
 
+	log.Println("Adding container", details.Name[1:])
+
 	// create a new registration object
 	registration := new(consulapi.CatalogRegistration)
 	// initalize it with our container details
 	registration.Node = details.Name[1:]
 	registration.Address = details.NetworkSettings.IpAddress
 
-	// [todo] - Add Services to node at registration time
+	if len(details.Config.ExposedPorts) > 0 {
+		// Loop though the exposed ports and register each of them as services to consul
+		for portraw, _ := range details.Config.ExposedPorts {
+
+			// Create a new Service object
+			service := new(consulapi.AgentService)
+			// Split apart our port string from docker
+			port := strings.Split(portraw, "/")
+			// Name our service something unique
+			// [todo] - Look at environment variables or something to allow better names
+			service.Service = "test" + port[0]
+			// Convert the port to an integer
+			service.Port, _ = strconv.Atoi(port[0])
+			// Bind the service to our registrtion object
+			registration.Service = service
+
+			// Attempt to register our node with service
+			_, err := catalog.Register(registration, nil)
+			// Output any errors if we get them
+			if err != nil {
+				log.Println("err:", err)
+				return err
+			}
+		}
+	} else {
+		// Attempt to register our node with service
+		_, err := catalog.Register(registration, nil)
+		// Output any errors if we get them
+		if err != nil {
+			log.Println("err:", err)
+			return err
+		}
+	}
 
 	// Attempt to register it with consul
-	log.Println("Adding container", details.Name[1:])
-	_, err := catalog.Register(registration, nil)
-	// Output any errors if we get them
-	if err != nil {
-		log.Println("err:", err)
-		return err
-	}
 	return nil
 }
 
