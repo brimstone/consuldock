@@ -32,6 +32,7 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 			log.Println("err:", err)
 		}
 	case "destroy":
+	case "delete":
 	default:
 		log.Printf("Received event: %#v\n", *event)
 	}
