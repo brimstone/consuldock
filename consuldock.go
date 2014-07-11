@@ -4,8 +4,10 @@ import (
 	"errors"
 	"flag"
 	"github.com/armon/consul-api"
+	//"github.com/davecgh/go-spew/spew"
 	"github.com/samalba/dockerclient"
 	"log"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -17,12 +19,169 @@ var dockerSock = flag.String("docker", "unix:///var/run/docker.sock", "Path to d
 var docker *dockerclient.DockerClient
 var catalog *consulapi.Catalog
 
+var containers map[string]Container
+
+type Service struct {
+	Name     string
+	Port     int
+	Protocol string
+	Status   string
+	CheckID  string
+	Output   string
+}
+
+type Container struct {
+	Id       string
+	Name     string
+	Address  string
+	Services []Service
+}
+
+func (c Container) CheckAll() {
+	for i, _ := range c.Services {
+		// only support simple tcp syn checks right now
+		c.Services[i].CheckID = "TCP SYN"
+		// build our address with our port
+		address := c.Address + ":" + strconv.Itoa(c.Services[i].Port)
+		// Start the clock
+		starttime := time.Now()
+		// Actually try to open a connection for one second
+		conn, err := net.DialTimeout("tcp", address, time.Second)
+		endtime := time.Now()
+		// If we can't, log an error to consul as well
+		if err != nil {
+			log.Println("Error checking ", c.Name, "on", address, ":", err)
+			c.Services[i].Output = "Error: " + err.Error()
+			c.Services[i].Status = "critical"
+		} else {
+			c.Services[i].Status = "passing"
+			c.Services[i].Output = "Sucessful SYN. Connect time: " + endtime.Sub(starttime).String()
+			// close our socket
+			conn.Close()
+		}
+	}
+	c.Register()
+}
+
+func addContainer(id string) (*Container, error) {
+	// get our container details
+	details, _ := docker.InspectContainer(id)
+	if details.Name[1:] == "consul" {
+		return nil, errors.New("Not adding consul container")
+	}
+	// Create a new container object
+	c := Container{Id: id, Name: details.Name[1:], Address: details.NetworkSettings.IpAddress}
+
+	log.Println("Adding container", c.Name)
+
+	if len(details.Config.ExposedPorts) > 0 {
+		// Loop though the exposed ports and register each of them as services to consul
+		for portraw, _ := range details.Config.ExposedPorts {
+			// Split apart our port string from docker
+			port := strings.Split(portraw, "/")
+			intport, _ := strconv.Atoi(port[0])
+			// [todo] - Figure out the right service name
+			// 1. Check for the env variable SERVICE_{Port}_NAME
+			// 2. Check for the env variable SERVICE_NAME
+			// 3. Use the container name
+			c.Services = append(c.Services, Service{Port: intport, Status: "unknown", Name: c.Name})
+		}
+	}
+
+	containers[c.Name] = c
+
+	return &c, nil
+}
+
+func (c Container) Register() error {
+	// create a new registration object
+	registration := new(consulapi.CatalogRegistration)
+	// initalize it with our container details
+	registration.Node = c.Name
+	registration.Address = c.Address
+
+	if len(c.Services) > 0 {
+		// Loop though the exposed ports and register each of them as services to consul
+		for _, containerService := range c.Services {
+
+			// Create a new Service object
+			service := new(consulapi.AgentService)
+			// Name our service something unique
+			// [todo] - Look at environment variables or something to allow better names
+			service.Service = containerService.Name
+			// Convert the port to an integer
+			service.Port = containerService.Port
+			// Bind the service to our registration object
+			registration.Service = service
+
+			// Create a new agent service check
+			check := new(consulapi.AgentCheck)
+			// Define the status of our check
+			check.Status = containerService.Status // or Lastly, the status must be one of "unknown", "passing", "warning", or "critical"
+			check.CheckID = containerService.CheckID
+			check.Output = containerService.Output
+			//check.Notes = "Notes"
+			// Add our Service Check to our registration object
+			registration.Check = check
+
+			// Attempt to register our node with service
+			_, err := catalog.Register(registration, nil)
+			// Output any errors if we get them
+			if err != nil {
+				log.Println("err:", err)
+				return err
+			}
+		}
+	}
+	return nil
+
+	// Attempt to register our node with service
+	_, err := catalog.Register(registration, nil)
+	// Output any errors if we get them
+	if err != nil {
+		log.Println("err:", err)
+		return err
+	}
+
+	// Attempt to register it with consul
+	return nil
+}
+
+func removeContainer(id string) error {
+	// find our container with this id
+	for i, container := range containers {
+		if container.Id == id {
+			// [todo] - Add error checking on container deregistration
+			container.Deregister()
+			delete(containers, i)
+		}
+	}
+	return nil
+}
+
+func (c Container) Deregister() error {
+	// create a new registration object
+	deregistration := new(consulapi.CatalogDeregistration)
+	// initalize it to our container
+	deregistration.Node = c.Name
+	// Attempt to deregister it with consul
+	log.Println("Removing container", c.Name)
+	_, err := catalog.Deregister(deregistration, nil)
+	// Output any errors if we get them
+	if err != nil {
+		log.Println("err:", err)
+		return err
+	}
+	return nil
+}
+
 // Callback used to listen to Docker's events
 func eventCallback(event *dockerclient.Event, args ...interface{}) {
 	switch event.Status {
 	case "create":
 	case "start":
-		err := addContainer(event.Id)
+		c, err := addContainer(event.Id)
+		c.Register()
 		if err != nil {
 			log.Println("err:", err)
 		}
@@ -38,78 +197,9 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 	}
 }
 
-func addContainer(id string) error {
-	// get our container details
-	details, _ := docker.InspectContainer(id)
-	if details.Name[1:] == "consul" {
-		return errors.New("Not adding consul container")
-	}
-
-	log.Println("Adding container", details.Name[1:])
-
-	// create a new registration object
-	registration := new(consulapi.CatalogRegistration)
-	// initalize it with our container details
-	registration.Node = details.Name[1:]
-	registration.Address = details.NetworkSettings.IpAddress
-
-	if len(details.Config.ExposedPorts) > 0 {
-		// Loop though the exposed ports and register each of them as services to consul
-		for portraw, _ := range details.Config.ExposedPorts {
-
-			// Create a new Service object
-			service := new(consulapi.AgentService)
-			// Split apart our port string from docker
-			port := strings.Split(portraw, "/")
-			// Name our service something unique
-			// [todo] - Look at environment variables or something to allow better names
-			service.Service = "test" + port[0]
-			// Convert the port to an integer
-			service.Port, _ = strconv.Atoi(port[0])
-			// Bind the service to our registrtion object
-			registration.Service = service
-
-			// Attempt to register our node with service
-			_, err := catalog.Register(registration, nil)
-			// Output any errors if we get them
-			if err != nil {
-				log.Println("err:", err)
-				return err
-			}
-		}
-	} else {
-		// Attempt to register our node with service
-		_, err := catalog.Register(registration, nil)
-		// Output any errors if we get them
-		if err != nil {
-			log.Println("err:", err)
-			return err
-		}
-	}
-
-	// Attempt to register it with consul
-	return nil
-}
-
-func removeContainer(id string) error {
-	// get our container details
-	details, _ := docker.InspectContainer(id)
-	// create a new registration object
-	deregistration := new(consulapi.CatalogDeregistration)
-	// initalize it to our container
-	deregistration.Node = details.Name[1:]
-	// Attempt to deregister it with consul
-	log.Println("Removing container", details.Name[1:])
-	_, err := catalog.Deregister(deregistration, nil)
-	// Output any errors if we get them
-	if err != nil {
-		log.Println("err:", err)
-		return err
-	}
-	return nil
-}
-
 func main() {
+	containers = make(map[string]Container)
+
 	// Function level variables
 	var err error
 
@@ -123,7 +213,7 @@ func main() {
 	}
 
 	// Get only running containers
-	containers, err := docker.ListContainers(false)
+	runningContainers, err := docker.ListContainers(false)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -144,7 +234,7 @@ func main() {
 	if err != nil {
 		log.Println("Error getting status:", err)
 		// Look through the running containers for one named 'consul'
-		for _, c := range containers {
+		for _, c := range runningContainers {
 			// If we find one
 			if c.Names[0] == "/consul" {
 				// Extract its IP
@@ -168,22 +258,29 @@ func main() {
 
 	catalog = consul.Catalog()
 
-	for _, c := range containers {
+	for _, c := range runningContainers {
 		// Get our container name
 		container := c.Names[0][1:]
 		// remove ugly leading slash
 		// let the user know what's up
 		log.Println("Found already running container:", container)
-		err := addContainer(c.Id)
+		mycontainer, err := addContainer(c.Id)
 		if err != nil {
 			log.Println("err:", err)
+		} else {
+			mycontainer.Deregister()
+			mycontainer.Register()
 		}
 	}
 
 	// Listen to events
 	docker.StartMonitorEvents(eventCallback)
-	// [fixme] - figure out a better way to wait forever
+	// Periodically check on our services, forever
 	for {
-		time.Sleep(24 * time.Hour)
+		for i, _ := range containers {
+			go containers[i].CheckAll()
+		}
+		//spew.Dump(containers)
+		time.Sleep(2 * time.Second)
 	}
 }
