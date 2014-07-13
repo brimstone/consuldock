@@ -104,7 +104,7 @@ func addContainer(id string) (*Container, error) {
 			// 1. Check for the env variable SERVICE_{Port}_NAME
 			// 2. Check for the env variable SERVICE_NAME
 			// 3. Use the container name
-			c.Services = append(c.Services, Service{Port: intport, Status: "unknown", Name: serviceName})
+			c.Services = append(c.Services, Service{Port: intport, CheckID: "TCP SYN", Status: "unknown", Name: serviceName})
 		}
 	}
 
@@ -293,6 +293,7 @@ func main() {
 		}
 	}
 
+	log.Println("Finished enumerating containers, starting watch for docker events.")
 	// Listen to events
 	docker.StartMonitorEvents(eventCallback)
 	// Periodically check on our services, forever
