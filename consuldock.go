@@ -80,11 +80,24 @@ func addContainer(id string) (*Container, error) {
 			// Split apart our port string from docker
 			port := strings.Split(portraw, "/")
 			intport, _ := strconv.Atoi(port[0])
+			serviceName := ""
+			for _, envVar := range details.Config.Env {
+				envVarParts := strings.Split(envVar, "=")
+				envVarPartsService := strings.Split(envVarParts[0], "_")
+				if envVarPartsService[0] == "SERVICE" {
+					if envVarPartsService[1] == "NAME" && serviceName == "" {
+						serviceName = envVarParts[1]
+					}
+					if envVarPartsService[1] == port[0] {
+						serviceName = envVarParts[1]
+					}
+				}
+			}
 			// [todo] - Figure out the right service name
 			// 1. Check for the env variable SERVICE_{Port}_NAME
 			// 2. Check for the env variable SERVICE_NAME
 			// 3. Use the container name
-			c.Services = append(c.Services, Service{Port: intport, Status: "unknown", Name: c.Name})
+			c.Services = append(c.Services, Service{Port: intport, Status: "unknown", Name: serviceName})
 		}
 	}
 
@@ -280,7 +293,6 @@ func main() {
 		for i, _ := range containers {
 			go containers[i].CheckAll()
 		}
-		//spew.Dump(containers)
 		time.Sleep(2 * time.Second)
 	}
 }
