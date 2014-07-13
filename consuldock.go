@@ -50,12 +50,19 @@ func (c Container) CheckAll() {
 		endtime := time.Now()
 		// If we can't, log an error to consul as well
 		if err != nil {
-			log.Println("Error checking ", c.Name, "on", address, ":", err)
+			if c.Services[i].Status != "critical" {
+				log.Printf("Service %s:%s [%s] has error %s\n", c.Name, c.Services[i].Name, address, err)
+			}
 			c.Services[i].Output = "Error: " + err.Error()
 			c.Services[i].Status = "critical"
 		} else {
+			if c.Services[i].Status == "unknown" {
+				log.Printf("Service %s:%s [%s] passing\n", c.Name, c.Services[i].Name, address)
+			} else if c.Services[i].Status == "critical" {
+				log.Printf("Service %s:%s [%s] recovered\n", c.Name, c.Services[i].Name, address)
+			}
 			c.Services[i].Status = "passing"
-			c.Services[i].Output = "Sucessful SYN. Connect time: " + endtime.Sub(starttime).String()
+			c.Services[i].Output = "Successful SYN. Connect time: " + endtime.Sub(starttime).String()
 			// close our socket
 			conn.Close()
 		}
