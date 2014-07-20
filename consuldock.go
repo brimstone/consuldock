@@ -1,3 +1,4 @@
+// Dynamic Consul Node/service creation based on docker containers
 package main
 
 import (
@@ -131,6 +132,8 @@ func (c Container) Register() error {
 			service.Service = containerService.Name
 			// Convert the port to an integer
 			service.Port = containerService.Port
+			// Add tags to the service
+			service.Tags = []string{"consuldock"}
 			// Bind the service to our registration object
 			registration.Service = service
 
@@ -138,9 +141,12 @@ func (c Container) Register() error {
 			check := new(consulapi.AgentCheck)
 			// Define the status of our check
 			check.Status = containerService.Status // or Lastly, the status must be one of "unknown", "passing", "warning", or "critical"
+			// Add the check id
 			check.CheckID = containerService.CheckID
+			// Add the output of the check
 			check.Output = containerService.Output
-			//check.Notes = "Notes"
+			// Add ntoes to the check
+			check.Notes = "consuldock managed node"
 			// Add our Service Check to our registration object
 			registration.Check = check
 
@@ -153,7 +159,6 @@ func (c Container) Register() error {
 			}
 		}
 	}
-	return nil
 
 	// Attempt to register our node with service
 	_, err := catalog.Register(registration, nil)
@@ -172,7 +177,12 @@ func removeContainer(id string) error {
 	for i, container := range containers {
 		if container.Id == id {
 			// [todo] - Add error checking on container deregistration
-			container.Deregister()
+			err := container.Deregister()
+			// Output any errors if we get them
+			if err != nil {
+				log.Println("err:", err)
+				return err
+			}
 			delete(containers, i)
 		}
 	}
