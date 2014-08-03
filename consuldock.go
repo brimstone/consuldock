@@ -54,6 +54,7 @@ func (c Container) CheckAll() {
 			if c.Services[i].Status != "critical" {
 				log.Printf("Service %s:%s [%s] has error %s\n", c.Name, c.Services[i].Name, address, err)
 			}
+			// [todo] - Multiple services on a node can't have different states
 			c.Services[i].Output = "Error: " + err.Error()
 			c.Services[i].Status = "critical"
 		} else {
@@ -88,7 +89,7 @@ func addContainer(id string) (*Container, error) {
 			// Split apart our port string from docker
 			port := strings.Split(portraw, "/")
 			intport, _ := strconv.Atoi(port[0])
-			serviceName := ""
+			serviceName := c.Name
 			for _, envVar := range details.Config.Env {
 				envVarParts := strings.Split(envVar, "=")
 				envVarPartsService := strings.Split(envVarParts[0], "_")
@@ -128,7 +129,6 @@ func (c Container) Register() error {
 			// Create a new Service object
 			service := new(consulapi.AgentService)
 			// Name our service something unique
-			// [todo] - Look at environment variables or something to allow better names
 			service.Service = containerService.Name
 			// Convert the port to an integer
 			service.Port = containerService.Port
@@ -284,10 +284,13 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	// let the users know we found the leader
 	log.Println("Consul Leader is", leader)
 
+	// Get an object to our catalog
 	catalog = consul.Catalog()
 
+	// Add nodes for each container we're running
 	for _, c := range runningContainers {
 		// Get our container name
 		container := c.Names[0][1:]
@@ -296,12 +299,38 @@ func main() {
 		log.Println("Found already running container:", container)
 		mycontainer, err := addContainer(c.Id)
 		if err != nil {
-			log.Println("err:", err)
+			log.Println("Error adding container:", err)
 		} else {
 			mycontainer.Deregister()
 			mycontainer.Register()
 		}
 	}
+
+	// Remove nodes marked by us earlier that aren't running any longer
+
+	// Get a list of the nodes in consul
+	nodes, _, err := catalog.Nodes(nil)
+	if err != nil {
+		log.Println("Error getting list of nodes:", err)
+	}
+	for _, nodeRef := range nodes {
+		node, _, err := catalog.Node(nodeRef.Node, nil)
+		if err != nil {
+			log.Println("Error getting data for node", nodeRef.Node, ":", err)
+		}
+		// Look for the container in docker
+		for _, serviceRef := range node.Services {
+			for _, tagName := range serviceRef.Tags {
+				// If this container was put here by us, remove it
+				// [todo] - What am I doing here?
+				if tagName == "consuldock" {
+					mycontainer := Container{Name: nodeRef.Node}
+					mycontainer.Deregister()
+				}
+			}
+		}
+	}
+	// Since we didn't find it, ok to remove
 
 	log.Println("Finished enumerating containers, starting watch for docker events.")
 	// Listen to events
