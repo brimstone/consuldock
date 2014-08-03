@@ -13,7 +13,8 @@ ENTRYPOINT ["/go/bin/consuldock"]
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git golang ca-certificates \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists
+    && rm -rf /var/lib/apt/lists \
 
-# Get and build our package
-RUN go get github.com/brimstone/consuldock
+	&& go get github.com/brimstone/consuldock \
+
+	&& apt-get remove --purge git golang ca-certificates
