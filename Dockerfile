@@ -15,6 +15,6 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists \
 
-	&& go get github.com/brimstone/consuldock \
+	&& go get -v github.com/brimstone/consuldock \
 
 	&& apt-get remove --purge git golang ca-certificates
