@@ -237,7 +237,7 @@ func main() {
 	flag.Parse()
 
 	// Init the docker client
-	docker, err = dockerclient.NewDockerClient(*dockerSock)
+	docker, err = dockerclient.NewDockerClient(*dockerSock, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
