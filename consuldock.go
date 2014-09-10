@@ -266,11 +266,14 @@ func main() {
 		// Look through the running containers for one named 'consul'
 		for _, c := range runningContainers {
 			// If we find one
-			if c.Names[0] == "/consul" {
-				// Extract its IP
-				details, _ := docker.InspectContainer(c.Id)
-				// Update our client config
-				consulConfig.Address = details.NetworkSettings.IpAddress + ":8500"
+			for _, name := range c.Names {
+				names := strings.Split(name, "/")
+				if names[1] == "consul" {
+					// Extract its IP
+					details, _ := docker.InspectContainer(c.Id)
+					// Update our client config
+					consulConfig.Address = details.NetworkSettings.IpAddress + ":8500"
+				}
 			}
 		}
 		if consulConfig.Address == *consulAddress {
