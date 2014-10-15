@@ -18,6 +18,7 @@ import (
 var consulAddress = flag.String("consul", "0.0.0.0:8500", "Address of consul server")
 var dockerSock = flag.String("docker", "unix:///var/run/docker.sock", "Path to docker socket")
 var serviceTag = flag.String("tag", "consuldock", "Tag for services created by this instance.")
+var errorDelay = flag.Int("errordelay", 100, "Delay when the server returns an error.")
 
 var docker *dockerclient.DockerClient
 var catalog *consulapi.Catalog
@@ -159,7 +160,7 @@ func (c Container) Register() error {
 				// Output any errors if we get them
 				if err != nil {
 					log.Println("err:", err)
-					time.Sleep(50 * time.Millisecond)
+					time.Sleep(*errorDelay * time.Millisecond)
 				}
 			}
 		}
@@ -172,7 +173,7 @@ func (c Container) Register() error {
 		// Output any errors if we get them
 		if err != nil {
 			log.Println("err:", err)
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(*errorDelay * time.Millisecond)
 		}
 	}
 
@@ -191,7 +192,7 @@ func removeContainer(id string) error {
 				// Output any errors if we get them
 				if err != nil {
 					log.Println("err:", err)
-					time.Sleep(50 * time.Millisecond)
+					time.Sleep(*errorDelay * time.Millisecond)
 				}
 			}
 			delete(containers, i)
@@ -213,7 +214,7 @@ func (c Container) Deregister() error {
 		// Output any errors if we get them
 		if err != nil {
 			log.Println("err:", err)
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(*errorDelay * time.Millisecond)
 		}
 	}
 	return nil
@@ -230,7 +231,7 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 			c, err = addContainer(event.Id)
 			if err != nil {
 				log.Println("err:", err)
-				time.Sleep(50 * time.Millisecond)
+				time.Sleep(*errorDelay * time.Millisecond)
 			}
 		}
 		c.Register()
@@ -240,7 +241,7 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 			err = removeContainer(event.Id)
 			if err != nil {
 				log.Println("err:", err)
-				time.Sleep(50 * time.Millisecond)
+				time.Sleep(*errorDelay * time.Millisecond)
 			}
 		}
 	case "destroy":
@@ -329,7 +330,7 @@ func main() {
 			mycontainer, err = addContainer(c.Id)
 			if err != nil {
 				log.Println("Error adding container:", err)
-				time.Sleep(50 * time.Millisecond)
+				time.Sleep(*errorDelay * time.Millisecond)
 			}
 		}
 		mycontainer.Deregister()
