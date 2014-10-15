@@ -161,7 +161,7 @@ func (c Container) Register() error {
 				_, err = catalog.Register(registration, nil)
 				// Output any errors if we get them
 				if err != nil {
-					log.Println("err:", err)
+					log.Println("Register() service err:", err)
 					time.Sleep(errorDelay)
 				}
 			}
@@ -174,7 +174,7 @@ func (c Container) Register() error {
 		_, err = catalog.Register(registration, nil)
 		// Output any errors if we get them
 		if err != nil {
-			log.Println("err:", err)
+			log.Println("Register() node err:", err)
 			time.Sleep(errorDelay)
 		}
 	}
@@ -193,7 +193,7 @@ func removeContainer(id string) error {
 				err = container.Deregister()
 				// Output any errors if we get them
 				if err != nil {
-					log.Println("err:", err)
+					log.Println("removeContainer() err:", err)
 					time.Sleep(errorDelay)
 				}
 			}
@@ -215,7 +215,7 @@ func (c Container) Deregister() error {
 		_, err = catalog.Deregister(deregistration, nil)
 		// Output any errors if we get them
 		if err != nil {
-			log.Println("err:", err)
+			log.Println("Deregister() err:", err)
 			time.Sleep(errorDelay)
 		}
 	}
@@ -229,7 +229,7 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 	case "start":
 		c, err := addContainer(event.Id)
 		if err != nil {
-			log.Println("err:", err)
+			log.Println("eventCallback() start err:", err)
 		}
 		c.Register()
 	case "die":
@@ -237,7 +237,7 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 		for err != nil {
 			err = removeContainer(event.Id)
 			if err != nil {
-				log.Println("err:", err)
+				log.Println("eventCallback() die err:", err)
 				time.Sleep(errorDelay)
 			}
 		}
