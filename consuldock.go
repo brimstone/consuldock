@@ -17,6 +17,7 @@ import (
 
 var consulAddress = flag.String("consul", "0.0.0.0:8500", "Address of consul server")
 var dockerSock = flag.String("docker", "unix:///var/run/docker.sock", "Path to docker socket")
+var serviceTag = flag.String("tag", "consuldock", "Tag for services created by this instance.")
 
 var docker *dockerclient.DockerClient
 var catalog *consulapi.Catalog
@@ -134,7 +135,7 @@ func (c Container) Register() error {
 			// Convert the port to an integer
 			service.Port = containerService.Port
 			// Add tags to the service
-			service.Tags = []string{"consuldock"}
+			service.Tags = []string{*serviceTag}
 			// Bind the service to our registration object
 			registration.Service = service
 
@@ -345,7 +346,7 @@ func main() {
 			for _, tagName := range serviceRef.Tags {
 				// If this container was put here by us, remove it
 				// [todo] - What am I doing here?
-				if tagName == "consuldock" {
+				if tagName == *serviceTag {
 					mycontainer := Container{Name: nodeRef.Node}
 					mycontainer.Deregister()
 				}
