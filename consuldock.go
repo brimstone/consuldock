@@ -124,7 +124,7 @@ func (c Container) Register() error {
 	// create a new registration object
 	registration := new(consulapi.CatalogRegistration)
 	// initalize it with our container details
-	registration.Node = c.Name
+	registration.Node = c.Id
 	registration.Address = c.Address
 
 	if len(c.Services) > 0 {
@@ -207,7 +207,7 @@ func (c Container) Deregister() error {
 	// create a new registration object
 	deregistration := new(consulapi.CatalogDeregistration)
 	// initalize it to our container
-	deregistration.Node = c.Name
+	deregistration.Node = c.Id
 	// Attempt to deregister it with consul
 	log.Println("Removing container", c.Name)
 	err := fmt.Errorf("loop")
