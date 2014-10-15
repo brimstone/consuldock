@@ -159,6 +159,7 @@ func (c Container) Register() error {
 				// Output any errors if we get them
 				if err != nil {
 					log.Println("err:", err)
+					time.Sleep(50 * time.Millisecond)
 				}
 			}
 		}
@@ -171,6 +172,7 @@ func (c Container) Register() error {
 		// Output any errors if we get them
 		if err != nil {
 			log.Println("err:", err)
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 
@@ -189,6 +191,7 @@ func removeContainer(id string) error {
 				// Output any errors if we get them
 				if err != nil {
 					log.Println("err:", err)
+					time.Sleep(50 * time.Millisecond)
 				}
 			}
 			delete(containers, i)
@@ -210,6 +213,7 @@ func (c Container) Deregister() error {
 		// Output any errors if we get them
 		if err != nil {
 			log.Println("err:", err)
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 	return nil
@@ -226,6 +230,7 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 			c, err = addContainer(event.Id)
 			if err != nil {
 				log.Println("err:", err)
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
 		c.Register()
@@ -235,6 +240,7 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 			err = removeContainer(event.Id)
 			if err != nil {
 				log.Println("err:", err)
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
 	case "destroy":
@@ -323,6 +329,7 @@ func main() {
 			mycontainer, err = addContainer(c.Id)
 			if err != nil {
 				log.Println("Error adding container:", err)
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
 		mycontainer.Deregister()
