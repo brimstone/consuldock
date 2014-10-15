@@ -6,6 +6,7 @@ import (
 	"flag"
 	"github.com/armon/consul-api"
 	//"github.com/davecgh/go-spew/spew"
+	"fmt"
 	"github.com/samalba/dockerclient"
 	"log"
 	"net"
@@ -150,22 +151,26 @@ func (c Container) Register() error {
 			// Add our Service Check to our registration object
 			registration.Check = check
 
-			// Attempt to register our node with service
-			_, err := catalog.Register(registration, nil)
-			// Output any errors if we get them
-			if err != nil {
-				log.Println("err:", err)
-				return err
+			err := fmt.Errorf("loop")
+			for err != nil {
+				// Attempt to register our node with service
+				_, err = catalog.Register(registration, nil)
+				// Output any errors if we get them
+				if err != nil {
+					log.Println("err:", err)
+				}
 			}
 		}
 	}
 
-	// Attempt to register our node with service
-	_, err := catalog.Register(registration, nil)
-	// Output any errors if we get them
-	if err != nil {
-		log.Println("err:", err)
-		return err
+	err := fmt.Errorf("loop")
+	for err != nil {
+		// Attempt to register our node with service
+		_, err = catalog.Register(registration, nil)
+		// Output any errors if we get them
+		if err != nil {
+			log.Println("err:", err)
+		}
 	}
 
 	// Attempt to register it with consul
@@ -176,12 +181,14 @@ func removeContainer(id string) error {
 	// find our container with this id
 	for i, container := range containers {
 		if container.Id == id {
-			// [todo] - Add error checking on container deregistration
-			err := container.Deregister()
-			// Output any errors if we get them
-			if err != nil {
-				log.Println("err:", err)
-				return err
+			err := fmt.Errorf("loop")
+			for err != nil {
+				// [todo] - Add error checking on container deregistration
+				err = container.Deregister()
+				// Output any errors if we get them
+				if err != nil {
+					log.Println("err:", err)
+				}
 			}
 			delete(containers, i)
 		}
@@ -196,11 +203,13 @@ func (c Container) Deregister() error {
 	deregistration.Node = c.Name
 	// Attempt to deregister it with consul
 	log.Println("Removing container", c.Name)
-	_, err := catalog.Deregister(deregistration, nil)
-	// Output any errors if we get them
-	if err != nil {
-		log.Println("err:", err)
-		return err
+	err := fmt.Errorf("loop")
+	for err != nil {
+		_, err = catalog.Deregister(deregistration, nil)
+		// Output any errors if we get them
+		if err != nil {
+			log.Println("err:", err)
+		}
 	}
 	return nil
 }
@@ -210,15 +219,22 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 	switch event.Status {
 	case "create":
 	case "start":
-		c, err := addContainer(event.Id)
-		c.Register()
-		if err != nil {
-			log.Println("err:", err)
+		err := fmt.Errorf("loop")
+		var c *Container
+		for err != nil {
+			c, err = addContainer(event.Id)
+			if err != nil {
+				log.Println("err:", err)
+			}
 		}
+		c.Register()
 	case "die":
-		err := removeContainer(event.Id)
-		if err != nil {
-			log.Println("err:", err)
+		err := fmt.Errorf("loop")
+		for err != nil {
+			err = removeContainer(event.Id)
+			if err != nil {
+				log.Println("err:", err)
+			}
 		}
 	case "destroy":
 	case "delete":
@@ -300,13 +316,16 @@ func main() {
 		// remove ugly leading slash
 		// let the user know what's up
 		log.Println("Found already running container:", container)
-		mycontainer, err := addContainer(c.Id)
-		if err != nil {
-			log.Println("Error adding container:", err)
-		} else {
-			mycontainer.Deregister()
-			mycontainer.Register()
+		var mycontainer *Container
+		err := fmt.Errorf("loop")
+		for err != nil {
+			mycontainer, err = addContainer(c.Id)
+			if err != nil {
+				log.Println("Error adding container:", err)
+			}
 		}
+		mycontainer.Deregister()
+		mycontainer.Register()
 	}
 
 	// Remove nodes marked by us earlier that aren't running any longer
