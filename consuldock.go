@@ -326,9 +326,10 @@ func main() {
 		mycontainer, err := addContainer(c.Id)
 		if err != nil {
 			log.Println("Error adding container:", err)
+		} else {
+			mycontainer.Deregister()
+			mycontainer.Register()
 		}
-		mycontainer.Deregister()
-		mycontainer.Register()
 	}
 
 	// Remove nodes marked by us earlier that aren't running any longer
