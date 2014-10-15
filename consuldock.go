@@ -227,14 +227,9 @@ func eventCallback(event *dockerclient.Event, args ...interface{}) {
 	switch event.Status {
 	case "create":
 	case "start":
-		err := fmt.Errorf("loop")
-		var c *Container
-		for err != nil {
-			c, err = addContainer(event.Id)
-			if err != nil {
-				log.Println("err:", err)
-				time.Sleep(errorDelay)
-			}
+		c, err := addContainer(event.Id)
+		if err != nil {
+			log.Println("err:", err)
 		}
 		c.Register()
 	case "die":
@@ -328,14 +323,9 @@ func main() {
 		// remove ugly leading slash
 		// let the user know what's up
 		log.Println("Found already running container:", container)
-		var mycontainer *Container
-		err := fmt.Errorf("loop")
-		for err != nil {
-			mycontainer, err = addContainer(c.Id)
-			if err != nil {
-				log.Println("Error adding container:", err)
-				time.Sleep(errorDelay)
-			}
+		mycontainer, err := addContainer(c.Id)
+		if err != nil {
+			log.Println("Error adding container:", err)
 		}
 		mycontainer.Deregister()
 		mycontainer.Register()
