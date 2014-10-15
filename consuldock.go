@@ -208,17 +208,14 @@ func (c Container) Deregister() error {
 	deregistration := new(consulapi.CatalogDeregistration)
 	// initalize it to our container
 	deregistration.Node = c.Id
-	if c.Id == "" {
-		panic("How did we get here?")
-	}
 	// Attempt to deregister it with consul
-	log.Println("Removing container", c.Name)
+	log.Println("Removing container", c.Id)
 	err := fmt.Errorf("loop")
 	for err != nil {
 		_, err = catalog.Deregister(deregistration, nil)
 		// Output any errors if we get them
 		if err != nil {
-			log.Printf("Deregister(%s) err:%s\n", c.Name, err)
+			log.Printf("Deregister(%s) err:%s\n", c.Id, err)
 			time.Sleep(errorDelay)
 		}
 	}
@@ -353,7 +350,7 @@ func main() {
 				// If this container was put here by us, remove it
 				// [todo] - What am I doing here?
 				if tagName == *serviceTag {
-					mycontainer := Container{Name: nodeRef.Node}
+					mycontainer := Container{Id: nodeRef.Node}
 					mycontainer.Deregister()
 				}
 			}
