@@ -98,12 +98,19 @@ func addContainer(id string) (*Container, error) {
 			for _, envVar := range details.Config.Env {
 				envVarParts := strings.Split(envVar, "=")
 				envVarPartsService := strings.Split(envVarParts[0], "_")
-				if envVarPartsService[0] == "SERVICE" {
-					if envVarPartsService[1] == "NAME" && serviceName == "" {
-						serviceName = envVarParts[1]
+				if len(envVarPartsService) == 2 {
+					if envVarPartsService[0] == "SERVICE" {
+						if envVarPartsService[1] == "NAME" && serviceName == "" {
+							serviceName = envVarParts[1]
+						}
 					}
+				} else if len(envVarPartsService) == 3 {
 					if envVarPartsService[1] == port[0] {
-						serviceName = envVarParts[1]
+						if envVarPartsService[2] == "NAME" {
+							serviceName = envVarParts[1]
+						} else if envVarPartsService[2] == "TAG" {
+							log.Println("Found a tag", envVarParts[1])
+						}
 					}
 				}
 			}
