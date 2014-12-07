@@ -34,6 +34,7 @@ type Service struct {
 	Status   string
 	CheckID  string
 	Output   string
+	Tags     []string
 }
 
 type Container struct {
@@ -95,6 +96,7 @@ func addContainer(id string) (*Container, error) {
 			port := strings.Split(portraw, "/")
 			intport, _ := strconv.Atoi(port[0])
 			serviceName := c.Name
+			tags := []string{}
 			for _, envVar := range details.Config.Env {
 				envVarParts := strings.Split(envVar, "=")
 				envVarPartsService := strings.Split(envVarParts[0], "_")
@@ -109,7 +111,7 @@ func addContainer(id string) (*Container, error) {
 						if envVarPartsService[2] == "NAME" {
 							serviceName = envVarParts[1]
 						} else if envVarPartsService[2] == "TAG" {
-							log.Println("Found a tag", envVarParts[1])
+							tags = append(tags, envVarParts[1])
 						}
 					}
 				}
@@ -118,7 +120,7 @@ func addContainer(id string) (*Container, error) {
 			// 1. Check for the env variable SERVICE_{Port}_NAME
 			// 2. Check for the env variable SERVICE_NAME
 			// 3. Use the container name
-			c.Services = append(c.Services, Service{Port: intport, CheckID: "TCP SYN", Status: "unknown", Name: serviceName})
+			c.Services = append(c.Services, Service{Port: intport, CheckID: "TCP SYN", Status: "unknown", Name: serviceName, Tags: tags})
 		}
 	}
 
@@ -146,6 +148,11 @@ func (c Container) Register() error {
 			service.Port = containerService.Port
 			// Add tags to the service
 			service.Tags = []string{*serviceTag}
+			if len(containerService.Tags) > 0 {
+				for _, tag := range containerService.Tags {
+					service.Tags = append(service.Tags, tag)
+				}
+			}
 			// Bind the service to our registration object
 			registration.Service = service
 
