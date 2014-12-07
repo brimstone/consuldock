@@ -280,7 +280,7 @@ func main() {
 	}
 
 	// Get only running containers
-	runningContainers, err := docker.ListContainers(false)
+	runningContainers, err := docker.ListContainers(false, true, "")
 	if err != nil {
 		log.Fatal(err)
 	}
