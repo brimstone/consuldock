@@ -309,7 +309,14 @@ func main() {
 					// Extract its IP
 					details, _ := docker.InspectContainer(c.Id)
 					// Update our client config
-					consulConfig.Address = details.NetworkSettings.IpAddress + ":8500"
+					switch details.HostConfig.NetworkMode {
+					case "bridge":
+						consulConfig.Address = details.NetworkSettings.IpAddress + ":8500"
+					case "host":
+						consulConfig.Address = "127.0.0.1"
+					default:
+						log.Fatal(fmt.Errorf("Don't know how to handle NetworkMode of type %s", details.HostConfig.NetworkMode))
+					}
 				}
 			}
 		}
