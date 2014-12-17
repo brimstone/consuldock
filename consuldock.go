@@ -136,6 +136,11 @@ func (c Container) Register() error {
 	registration.Node = c.Id
 	registration.Address = c.Address
 
+	if c.Address == "" {
+		log.Printf("No Address for %s\n", c.Id)
+		return nil
+	}
+
 	if len(c.Services) > 0 {
 		// Loop though the exposed ports and register each of them as services to consul
 		for _, containerService := range c.Services {
@@ -188,7 +193,7 @@ func (c Container) Register() error {
 		_, err = catalog.Register(registration, nil)
 		// Output any errors if we get them
 		if err != nil {
-			log.Println("Register() node err:", err)
+			log.Printf("Register() node err: %s %+v", err, c)
 			time.Sleep(errorDelay)
 		}
 	}
