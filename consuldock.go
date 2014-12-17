@@ -175,7 +175,7 @@ func (c Container) Register() error {
 				_, err = catalog.Register(registration, nil)
 				// Output any errors if we get them
 				if err != nil {
-					log.Println("Register() service err:", err)
+					log.Printf("Register() service err: %s %+v %+v\n", err, service, check)
 					time.Sleep(errorDelay)
 				}
 			}
