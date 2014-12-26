@@ -137,7 +137,7 @@ func (c Container) Register() error {
 	registration.Address = c.Address
 
 	if c.Address == "" {
-		log.Printf("No Address for %s\n", c.Id)
+		//log.Printf("No Address for %s\n", c.Id)
 		return nil
 	}
 
