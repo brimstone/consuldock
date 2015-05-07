@@ -87,7 +87,7 @@ func addContainer(id string) (*Container, error) {
 		return nil, errors.New("Not adding consul container")
 	}
 	// Create a new container object
-	c := Container{Id: id, Name: details.Name[1:], Address: details.NetworkSettings.IpAddress}
+	c := Container{Id: id, Name: details.Name[1:], Address: details.NetworkSettings.IPAddress}
 
 	log.Println("Adding container", c.Name)
 
