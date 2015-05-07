@@ -244,7 +244,7 @@ func (c Container) Deregister() error {
 }
 
 // Callback used to listen to Docker's events
-func eventCallback(event *dockerclient.Event, args ...interface{}) {
+func eventCallback(event *dockerclient.Event, errors chan error, args ...interface{}) {
 	switch event.Status {
 	case "create":
 	case "start":
@@ -294,6 +294,7 @@ func main() {
 
 	// Init the consul client
 	consulConfig := consulapi.DefaultConfig()
+	log.Println("Attempting to contact consul server at", consulAddress)
 	consulConfig.Address = *consulAddress
 	consul, err := consulapi.NewClient(consulConfig)
 	if err != nil {
@@ -388,7 +389,7 @@ func main() {
 
 	log.Println("Finished enumerating containers, starting watch for docker events.")
 	// Listen to events
-	docker.StartMonitorEvents(eventCallback)
+	docker.StartMonitorEvents(eventCallback, nil)
 	// Periodically check on our services, forever
 	for {
 		for i, _ := range containers {
