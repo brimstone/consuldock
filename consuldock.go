@@ -4,15 +4,17 @@ package main
 import (
 	"errors"
 	"flag"
+
 	"github.com/armon/consul-api"
 	//"github.com/davecgh/go-spew/spew"
 	"fmt"
-	"github.com/samalba/dockerclient"
 	"log"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/samalba/dockerclient"
 )
 
 var consulAddress = flag.String("consul", "0.0.0.0:8500", "Address of consul server")
