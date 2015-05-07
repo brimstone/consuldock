@@ -319,7 +319,7 @@ func main() {
 					// Update our client config
 					switch details.HostConfig.NetworkMode {
 					case "bridge":
-						consulConfig.Address = details.NetworkSettings.IpAddress + ":8500"
+						consulConfig.Address = details.NetworkSettings.IPAddress + ":8500"
 					case "host":
 						consulConfig.Address = "127.0.0.1"
 					default:
